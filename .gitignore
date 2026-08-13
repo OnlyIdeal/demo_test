@@ -1,0 +1,6 @@
+﻿node_modules/
+apps/api/data/*.sqlite
+apps/api/.env
+apps/web/dist/
+*.tsbuildinfo
+*.log

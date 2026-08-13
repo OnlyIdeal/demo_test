@@ -1,0 +1,10 @@
+{
+  "name": "ai-ems",
+  "private": true,
+  "scripts": {
+    "api:dev": "pnpm --dir apps/api dev",
+    "api:start": "pnpm --dir apps/api start",
+    "api:typecheck": "pnpm --dir apps/api typecheck",
+    "api:seed": "pnpm --dir apps/api db:seed"
+  }
+}

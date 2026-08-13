@@ -1,0 +1,52 @@
+﻿services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      HOST: 0.0.0.0
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      DATABASE_PATH: /app/apps/api/data/ai-ems.sqlite
+      CORS_ORIGIN: https://demo.onlyideal.top
+    volumes:
+      - ./apps/api/data:/app/apps/api/data
+    networks:
+      - ai-ems
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - ai-ems
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - ai-ems
+
+networks:
+  ai-ems:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
