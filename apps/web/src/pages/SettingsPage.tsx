@@ -1,0 +1,3 @@
+﻿import { Card, Descriptions, Typography } from 'antd';
+import { useAuth } from '../lib/auth';
+export function SettingsPage(){const {user}=useAuth();return <div className="page-wrap narrow-page"><div className="page-title"><div><Typography.Title level={2}>系统设置</Typography.Title><Typography.Paragraph type="secondary">MVP 当前提供账号和环境信息查看。</Typography.Paragraph></div></div><Card title="当前账号"><Descriptions bordered column={1}><Descriptions.Item label="姓名">{user?.name}</Descriptions.Item><Descriptions.Item label="用户名">{user?.username}</Descriptions.Item><Descriptions.Item label="角色">{user?.role}</Descriptions.Item><Descriptions.Item label="部门">{user?.departmentName??user?.departmentId}</Descriptions.Item></Descriptions></Card></div>}

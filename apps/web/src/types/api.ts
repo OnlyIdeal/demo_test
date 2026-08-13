@@ -17,3 +17,6 @@ export interface UsageRecord { id: string; employeeId: string; employeeName: str
 export interface Application { id: string; applicationNo: string; type: string; applicantId: string; applicantName: string; departmentName: string; requestedAmount: number; approvedAmount?: number; reason: string; status: string; submittedAt?: string; reviewedAt?: string; }
 export interface Project { id: string; name: string; code: string; departmentId: string; departmentName: string; status: string; }
 export interface Tool { id: string; name: string; vendor: string; billingType: string; currency: string; modelCount: number; }
+export interface Budget { id: string; departmentId: string; departmentName: string; year: number; initialAmount: number; increaseAmount: number; totalAmount: number; usedAmount: number; remainingAmount: number; executionRate: number; status: string; }
+export interface Quota { id: string; departmentId: string; departmentName: string; year: number; allocatedAmount: number; usedAmount: number; remainingAmount: number; usageRate: number; }
+export interface Alert { id: string; type: string; level: string; employeeId?: string; departmentId?: string; projectId?: string; applicationId?: string; title: string; message: string; allocatedAmount?: number; usedAmount?: number; usageRate?: number; status: string; occurredAt: string; }
