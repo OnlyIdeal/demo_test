@@ -1,4 +1,4 @@
-﻿import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 
 export const departments = sqliteTable('departments', {
   id: text('id').primaryKey(),
@@ -92,6 +92,7 @@ export const applications = sqliteTable('applications', {
   startDate: text('start_date'),
   endDate: text('end_date'),
   status: text('status').notNull(),
+  approvalStage: text('approval_stage').$type<'manager' | 'budget_admin' | 'completed'>().notNull().default('manager'),
   reviewerId: text('reviewer_id'),
   reviewerComment: text('reviewer_comment'),
   submittedAt: text('submitted_at'),

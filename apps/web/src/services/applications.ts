@@ -4,6 +4,6 @@ export function getApplications(params: { page: number; pageSize: number; status
 export function getProjects() { return request<Project[]>('/projects'); }
 export function getTools() { return request<Tool[]>('/catalog/tools'); }
 export function createApplication(body: { type: string; requestedAmount: number; projectId?: string; toolId?: string; reason: string; expectedUsage?: string; startDate?: string; endDate?: string }) { return request<{ id: string; applicationNo: string }>('/applications', { method: 'POST', body: JSON.stringify(body) }); }
-export function approveApplication(id: string, comment: string, approvedAmount?: number) { return request<{ id: string; status: string }>(`/applications/${id}/approve`, { method: 'POST', body: JSON.stringify({ comment, approvedAmount }) }); }
-export function rejectApplication(id: string, comment: string) { return request<{ id: string; status: string }>(`/applications/${id}/reject`, { method: 'POST', body: JSON.stringify({ comment }) }); }
+export function approveApplication(id: string, comment: string, approvedAmount?: number) { return request<{ id: string; status: string; approvalStage: string; message: string }>(`/applications/${id}/approve`, { method: 'POST', body: JSON.stringify({ comment, approvedAmount }) }); }
+export function rejectApplication(id: string, comment: string) { return request<{ id: string; status: string; message: string }>(`/applications/${id}/reject`, { method: 'POST', body: JSON.stringify({ comment }) }); }
 export function getApplication(id: string) { return request<Application>(`/applications/${id}`); }

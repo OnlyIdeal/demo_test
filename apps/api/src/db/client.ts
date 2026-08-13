@@ -14,6 +14,10 @@ sqlite.pragma('foreign_keys = ON');
 const schemaSqlPath = resolve(rootDir, 'database.sql');
 if (process.env.INIT_DATABASE !== 'false') {
   sqlite.exec(readFileSync(schemaSqlPath, 'utf8'));
+  const applicationColumns = sqlite.prepare("PRAGMA table_info(applications)").all() as Array<{ name: string }>;
+  if (!applicationColumns.some((column) => column.name === 'approval_stage')) {
+    sqlite.exec("ALTER TABLE applications ADD COLUMN approval_stage TEXT NOT NULL DEFAULT 'manager' CHECK (approval_stage IN ('manager', 'budget_admin', 'completed'))");
+  }
 }
 
 export const db = drizzle(sqlite, { schema });
