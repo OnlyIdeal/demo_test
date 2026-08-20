@@ -1,6 +1,6 @@
 ﻿# AI-EMS
 
-AI 费用管理平台 MVP：统一管理年度部门预算、部门共享额度、员工/部门/项目费用、申请审批和使用率预警。
+AI 费用管理平台：统一管理年度部门预算、部门共享额度、员工/部门/项目费用、两级申请审批、使用率预警以及角色权限。
 
 ## 目录
 
@@ -29,9 +29,12 @@ pnpm --dir apps/web dev
 
 | 账号 | 密码 | 角色 |
 |---|---|---|
+| `system.admin` | `SystemAdmin@2026!` | 系统管理员（默认） |
 | `employee.demo` | `Employee@2026!` | 员工 |
 | `manager.demo` | `Manager@2026!` | 部门主管 |
-| `budget.admin` | `BudgetAdmin@2026!` | 预算管理员 |
+| `budget.admin` | `BudgetAdmin@2026!` | 部门预算员（运营部） |
+
+系统管理员拥有全局只读业务视图，并负责用户、角色权限、年度预算、部门额度和工具状态维护；部门主管负责本部门一级审批；部门预算员仅能管理和终审所属部门的数据；员工仅能查看个人费用并发起申请。
 
 ## 服务器部署
 
@@ -45,8 +48,8 @@ pnpm --dir apps/web dev
 
 ```bash
 export JWT_SECRET='replace-with-a-random-long-secret'
-git clone https://github.com/OnlyIdeal/AI-EMS.git
-cd AI-EMS
+git clone https://github.com/OnlyIdeal/demo_test.git
+cd demo_test
 docker compose up -d --build
 ```
 

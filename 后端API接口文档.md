@@ -799,7 +799,7 @@ Invoke-RestMethod -Method Post `
 MVP 部署时建议：
 
 1. 服务器安装 Node.js 22 和 pnpm。
-2. 拉取 GitHub 仓库 `OnlyIdeal/AI-EMS`。
+2. 拉取 GitHub 仓库 `OnlyIdeal/demo_test`。
 3. 执行 `pnpm install`。
 4. 配置 `apps/api/.env`，必须修改 `JWT_SECRET`。
 5. 执行 `pnpm api:start`。
@@ -813,6 +813,26 @@ MVP 部署时建议：
 - 限制 CORS 来源。
 - 禁止把 `.env` 和 SQLite 数据库提交到 GitHub。
 - 为 SQLite 文件配置定期备份。
+
+---
+
+## 16. 系统管理与完整流程接口
+
+系统新增 `system_admin` 角色。该角色默认查看全局业务数据并维护系统配置，但不代替部门主管或部门预算员执行业务审批。`budget_admin` 的费用、预算、额度、申请和预警均限制在所属部门。
+
+| 方法 | 路径 | 权限 | 用途 |
+|---|---|---|---|
+| `GET` | `/api/v1/departments` | 登录用户 | 获取可见部门 |
+| `GET` | `/api/v1/users/options` | `usage.create` | 获取费用录入用户选项 |
+| `PUT` | `/api/v1/budgets/annual` | `budget.manage` | 新建或调整年度预算 |
+| `PUT` | `/api/v1/quotas` | `quota.manage` | 新建或调整部门额度 |
+| `PATCH` | `/api/v1/catalog/tools/:id/status` | `catalog.manage` | 启停 AI 工具 |
+| `GET/POST` | `/api/v1/admin/users` | `user.manage` | 查询或新增用户 |
+| `PATCH` | `/api/v1/admin/users/:id` | `user.manage` | 修改用户角色、部门或状态 |
+| `GET` | `/api/v1/admin/roles` | `role.manage` | 查询角色与权限矩阵 |
+| `PUT` | `/api/v1/admin/roles/:id/permissions` | `role.manage` | 保存业务角色权限 |
+
+申请通过部门主管、部门预算员两级审批。每一步写入 `application_reviews`；最终通过后，预算追加申请更新年度预算，额度或额外使用申请更新部门额度。
 
 
 

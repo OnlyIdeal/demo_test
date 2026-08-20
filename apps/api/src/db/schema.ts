@@ -13,12 +13,34 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   name: text('name').notNull(),
   email: text('email').notNull(),
-  role: text('role').$type<'employee' | 'manager' | 'budget_admin'>().notNull(),
+  role: text('role').$type<'employee' | 'manager' | 'budget_admin' | 'system_admin'>().notNull(),
   departmentId: text('department_id').notNull(),
   status: text('status').notNull(),
 }, (table) => ({
   departmentIdx: index('idx_users_department').on(table.departmentId),
   usernameIdx: uniqueIndex('idx_users_username').on(table.username),
+}));
+
+export const roles = sqliteTable('roles', {
+  id: text('id').primaryKey().$type<'employee' | 'manager' | 'budget_admin' | 'system_admin'>(),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  dataScope: text('data_scope').$type<'self' | 'department' | 'global'>().notNull(),
+  status: text('status').notNull(),
+});
+
+export const permissions = sqliteTable('permissions', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  module: text('module').notNull(),
+  description: text('description').notNull(),
+});
+
+export const rolePermissions = sqliteTable('role_permissions', {
+  roleId: text('role_id').notNull(),
+  permissionId: text('permission_id').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
 }));
 
 export const projects = sqliteTable('projects', {
@@ -98,6 +120,17 @@ export const applications = sqliteTable('applications', {
   submittedAt: text('submitted_at'),
   reviewedAt: text('reviewed_at'),
   createdAt: text('created_at'),
+});
+
+export const applicationReviews = sqliteTable('application_reviews', {
+  id: text('id').primaryKey(),
+  applicationId: text('application_id').notNull(),
+  stage: text('stage').$type<'manager' | 'budget_admin'>().notNull(),
+  action: text('action').$type<'approved' | 'rejected'>().notNull(),
+  reviewerId: text('reviewer_id').notNull(),
+  reviewerComment: text('reviewer_comment').notNull(),
+  approvedAmount: real('approved_amount'),
+  reviewedAt: text('reviewed_at').notNull(),
 });
 
 export const usageRecords = sqliteTable('usage_records', {

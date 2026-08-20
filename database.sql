@@ -17,12 +17,41 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    role TEXT NOT NULL CHECK (role IN ('employee', 'manager', 'budget_admin')),
+    role TEXT NOT NULL CHECK (role IN ('employee', 'manager', 'budget_admin', 'system_admin')),
     department_id TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (department_id) REFERENCES departments(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+    id TEXT PRIMARY KEY CHECK (id IN ('employee', 'manager', 'budget_admin', 'system_admin')),
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    data_scope TEXT NOT NULL CHECK (data_scope IN ('self', 'department', 'global')),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive'))
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    module TEXT NOT NULL,
+    description TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id TEXT NOT NULL,
+    permission_id TEXT NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    id TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -142,6 +171,19 @@ CREATE TABLE IF NOT EXISTS applications (
     FOREIGN KEY (reviewer_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS application_reviews (
+    id TEXT PRIMARY KEY,
+    application_id TEXT NOT NULL,
+    stage TEXT NOT NULL CHECK (stage IN ('manager', 'budget_admin')),
+    action TEXT NOT NULL CHECK (action IN ('approved', 'rejected')),
+    reviewer_id TEXT NOT NULL,
+    reviewer_comment TEXT NOT NULL,
+    approved_amount REAL,
+    reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
 CREATE TABLE IF NOT EXISTS usage_records (
     id TEXT PRIMARY KEY,
     employee_id TEXT NOT NULL,
@@ -242,9 +284,46 @@ CREATE INDEX IF NOT EXISTS idx_alerts_department ON alerts(department_id, status
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id, created_at DESC);
 
 -- Mock Data: departments (5)
+INSERT OR IGNORE INTO roles (id, name, description, data_scope) VALUES
+('employee', '员工', '查看个人费用并提交申请', 'self'),
+('manager', '部门主管', '查看本部门数据并负责一级审批', 'department'),
+('budget_admin', '部门预算员', '维护本部门预算额度并负责二级审批', 'department'),
+('system_admin', '系统管理员', '查看全局数据并维护用户、角色和系统配置', 'global');
+
+INSERT OR IGNORE INTO permissions (id, name, module, description) VALUES
+('dashboard.view', '查看驾驶舱', '驾驶舱', '查看权限范围内的预算和额度概览'),
+('usage.view', '查看费用', '费用', '查看权限范围内的费用明细'),
+('usage.create', '录入费用', '费用', '手工录入费用记录'),
+('quota.view', '查看额度', '额度', '查看部门共享额度'),
+('quota.manage', '维护额度', '额度', '创建或调整部门额度'),
+('application.view', '查看申请', '申请审批', '查看权限范围内的申请'),
+('application.create', '提交申请', '申请审批', '提交费用和额度申请'),
+('application.approve_manager', '主管审批', '申请审批', '执行部门主管一级审批'),
+('application.approve_budget', '预算审批', '申请审批', '执行部门预算员二级审批'),
+('budget.view', '查看预算', '预算', '查看年度预算'),
+('budget.manage', '维护预算', '预算', '创建和调整年度预算'),
+('analytics.view', '查看分析', '分析', '查看费用统计分析'),
+('alerts.view', '查看预警', '预警', '查看和处理预警'),
+('department.view', '查看部门', '组织', '查看部门成员和项目费用'),
+('catalog.view', '查看工具', '工具模型', '查看工具与模型目录'),
+('catalog.manage', '维护工具', '工具模型', '启用或停用工具'),
+('user.manage', '用户管理', '系统管理', '新增用户并调整角色和状态'),
+('role.manage', '角色权限管理', '系统管理', '配置业务角色的功能权限');
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT 'employee', id FROM permissions WHERE id IN ('dashboard.view', 'usage.view', 'quota.view', 'application.view', 'application.create', 'analytics.view', 'alerts.view', 'catalog.view') AND NOT EXISTS (SELECT 1 FROM system_settings WHERE id = 'default_permissions_initialized');
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT 'manager', id FROM permissions WHERE id IN ('dashboard.view', 'usage.view', 'quota.view', 'application.view', 'application.create', 'application.approve_manager', 'budget.view', 'analytics.view', 'alerts.view', 'department.view', 'catalog.view') AND NOT EXISTS (SELECT 1 FROM system_settings WHERE id = 'default_permissions_initialized');
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT 'budget_admin', id FROM permissions WHERE id IN ('dashboard.view', 'usage.view', 'usage.create', 'quota.view', 'quota.manage', 'application.view', 'application.create', 'application.approve_budget', 'budget.view', 'budget.manage', 'analytics.view', 'alerts.view', 'department.view', 'catalog.view') AND NOT EXISTS (SELECT 1 FROM system_settings WHERE id = 'default_permissions_initialized');
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT 'system_admin', id FROM permissions;
+INSERT OR IGNORE INTO system_settings (id, value) VALUES ('default_permissions_initialized', '1');
+
 INSERT OR IGNORE INTO departments (id, code, name) VALUES
 ('dept_001', 'RND', 'Product Research'), ('dept_002', 'DATA', 'Data Platform'), ('dept_003', 'MKT', 'Marketing Brand'), ('dept_004', 'CS', 'Customer Success'), ('dept_005', 'OPS', 'Operations');
 INSERT OR IGNORE INTO users (id, username, password_hash, name, email, role, department_id) VALUES
+('user_admin', 'system.admin', '$2b$12$A7kWHManSv7P5G8o61w7RePCgy3T5JDJ4S8xONph.BXeIqhtbGTl6', '系统管理员', 'system.admin@example.com', 'system_admin', 'dept_001'),
 ('user_001', 'employee.demo', '$2b$12$Jcop/Ba5ovlfwdnznE/dxuPNFHcxa7JkHtDTdCGWBQ64nuDRpuP8G', 'Zhang Xiaoming', 'zhangxiaoming@example.com', 'employee', 'dept_001'), ('user_002', 'manager.demo', '$2b$12$5JwZt0ylZuT7HlUZ/sffFupUXW8YVbG.aBxJtuDMNQDe5TAB7WXhe', 'Li Min', 'limin@example.com', 'manager', 'dept_001'), ('user_003', 'budget.admin', '$2b$12$o3mCqojbl0vUekALANKGm.Fsn2fVYXoEhmgQrDd96Em9jWBHzdy1O', 'Wang Fang', 'wangfang@example.com', 'budget_admin', 'dept_005'), ('user_004', 'employee.liu', 'demo_hash', 'Liu Yang', 'liuyang@example.com', 'employee', 'dept_002'), ('user_005', 'manager.chen', 'demo_hash', 'Chen Chen', 'chenchen@example.com', 'manager', 'dept_002'), ('user_006', 'employee.zhao', 'demo_hash', 'Zhao Qian', 'zhaoqian@example.com', 'employee', 'dept_003');
 INSERT OR IGNORE INTO ai_tools (id, code, name, vendor, billing_type, default_currency) VALUES
 ('tool_001', 'feishu_ai', 'Feishu AI', 'ByteDance', 'mixed', 'CNY'), ('tool_002', 'workbuddy', 'WorkBuddy CodeBuddy', 'Tencent', 'credit', 'CNY'), ('tool_003', 'codex', 'Codex', 'OpenAI', 'token', 'USD'), ('tool_004', 'copilot', 'GitHub Copilot', 'GitHub', 'seat', 'USD'), ('tool_005', 'trae', 'Trae', 'ByteDance', 'mixed', 'CNY'), ('tool_006', 'claude_code', 'Claude Code', 'Anthropic', 'token', 'USD'), ('tool_007', 'uniapi', 'UniAPI', 'Internal', 'token', 'CNY'), ('tool_008', 'fastgpt', 'FastGPT', 'FastGPT', 'call', 'CNY');
