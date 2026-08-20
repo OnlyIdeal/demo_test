@@ -44,7 +44,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.get('/api/v1/dashboard/overview', { preHandler: [app.authenticate] }, async (request, reply) => {
     const year = z.coerce.number().int().min(2000).max(2100).default(new Date().getFullYear()).parse((request.query as { year?: string }).year);
-    const budgetCondition = request.user.role === 'budget_admin' ? eq(annualBudgets.budgetYear, year) : and(eq(annualBudgets.budgetYear, year), eq(annualBudgets.departmentId, request.user.departmentId));
+    const budgetCondition = request.user.role === 'budget_admin' ? eq(annualBudgets.budgetYear, year) : request.user.role === 'employee' ? eq(annualBudgets.id, '__employee_has_no_department_budget_access__') : and(eq(annualBudgets.budgetYear, year), eq(annualBudgets.departmentId, request.user.departmentId));
     const quotaCondition = request.user.role === 'budget_admin' ? eq(departmentQuotas.quotaYear, year) : and(eq(departmentQuotas.quotaYear, year), eq(departmentQuotas.departmentId, request.user.departmentId));
     const budget = await db.select({ total: sql<number>`coalesce(sum(${annualBudgets.totalAmount}), 0)`, used: sql<number>`coalesce(sum(${annualBudgets.usedAmount}), 0)` }).from(annualBudgets).where(budgetCondition).get();
     const quota = await db.select({ allocated: sql<number>`coalesce(sum(${departmentQuotas.allocatedAmount}), 0)`, used: sql<number>`coalesce(sum(${departmentQuotas.usedAmount}), 0)` }).from(departmentQuotas).where(quotaCondition).get();

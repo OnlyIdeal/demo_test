@@ -288,4 +288,28 @@ INSERT OR IGNORE INTO alerts (id, type, level, employee_id, department_id, proje
 UPDATE applications SET approval_stage = 'completed' WHERE status IN ('approved', 'rejected');
 INSERT OR IGNORE INTO audit_logs (id, actor_id, action, entity_type, entity_id, after_data) VALUES
 ('audit_003', 'user_002', 'approve_manager', 'application', 'app_005', '{"approvalStage":"budget_admin"}'), ('audit_004', 'user_003', 'approve_budget', 'application', 'app_006', '{"status":"approved"}'), ('audit_005', 'user_002', 'reject', 'application', 'app_007', '{"status":"rejected"}'), ('audit_006', 'user_003', 'import', 'usage_record', 'usage_007', '{"amount":380}'), ('audit_007', 'user_003', 'import', 'usage_record', 'usage_008', '{"amount":670}'), ('audit_008', 'user_003', 'create', 'alert', 'alert_005', '{"usageRate":72}'), ('audit_009', 'user_003', 'create', 'budget', 'budget_006', '{"totalAmount":230000}'), ('audit_010', 'user_003', 'create', 'project', 'project_005', '{"status":"active"}');
+-- Deterministic bulk demo data: exactly 1000 additional usage records.
+INSERT OR IGNORE INTO users (id, username, password_hash, name, email, role, department_id) VALUES
+('user_011', 'manager.dept002', 'demo_hash', 'Manager Data', 'manager.dept002@example.com', 'manager', 'dept_002'), ('user_012', 'manager.dept003', 'demo_hash', 'Manager Marketing', 'manager.dept003@example.com', 'manager', 'dept_003'), ('user_013', 'manager.dept004', 'demo_hash', 'Manager Customer', 'manager.dept004@example.com', 'manager', 'dept_004'), ('user_014', 'manager.dept005', 'demo_hash', 'Manager Operations', 'manager.dept005@example.com', 'manager', 'dept_005'), ('user_015', 'manager.dept006', 'demo_hash', 'Manager Finance', 'manager.dept006@example.com', 'manager', 'dept_006'), ('user_016', 'manager.dept007', 'demo_hash', 'Manager HR', 'manager.dept007@example.com', 'manager', 'dept_007'), ('user_017', 'manager.dept008', 'demo_hash', 'Manager Legal', 'manager.dept008@example.com', 'manager', 'dept_008'), ('user_018', 'manager.dept009', 'demo_hash', 'Manager Sales', 'manager.dept009@example.com', 'manager', 'dept_009'), ('user_019', 'manager.dept010', 'demo_hash', 'Manager PMO', 'manager.dept010@example.com', 'manager', 'dept_010');
+WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 1000)
+INSERT OR IGNORE INTO usage_records (id, employee_id, department_id, project_id, tool_id, model_id, application_id, usage_type, quantity, original_currency, original_amount, exchange_rate, amount, source, status, occurred_at, created_by)
+SELECT
+  'usage_bulk_' || printf('%04d', n),
+  CASE n % 5 WHEN 0 THEN 'user_001' WHEN 1 THEN 'user_004' WHEN 2 THEN 'user_006' WHEN 3 THEN 'user_007' ELSE 'user_009' END,
+  CASE n % 5 WHEN 0 THEN 'dept_001' WHEN 1 THEN 'dept_002' WHEN 2 THEN 'dept_003' WHEN 3 THEN 'dept_004' ELSE 'dept_005' END,
+  CASE n % 5 WHEN 0 THEN 'project_001' WHEN 1 THEN 'project_002' WHEN 2 THEN 'project_003' WHEN 3 THEN 'project_004' ELSE 'project_005' END,
+  'tool_' || printf('%03d', (n % 10) + 1),
+  'model_' || printf('%03d', (n % 12) + 1),
+  NULL,
+  CASE n % 5 WHEN 0 THEN 'token' WHEN 1 THEN 'call' WHEN 2 THEN 'credit' WHEN 3 THEN 'seat' ELSE 'fixed' END,
+  100 + (n % 900),
+  CASE WHEN n % 4 = 0 THEN 'USD' ELSE 'CNY' END,
+  20 + (n % 300),
+  CASE WHEN n % 4 = 0 THEN 7.2 ELSE 1 END,
+  80 + (n % 1600),
+  CASE WHEN n % 3 = 0 THEN 'csv' ELSE 'manual' END,
+  'confirmed',
+  datetime('2026-01-01', '+' || (n % 225) || ' days'),
+  'user_003'
+FROM seq;
 COMMIT;
